@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Find the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Path to the virtual environment relative to the script's directory
+VENV_PATH="$SCRIPT_DIR/path/to/venv/bin/activate"
+
+# Path to the redditpost.py script
+PYTHON_SCRIPT="$SCRIPT_DIR/redditpost.py"
+
+# Check if two arguments are provided
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 <reddit_url> <output_directory>"
+  exit 1
+fi
+
+# Extract the arguments
+reddit_url=$1
+output_dir=$2
+
+# Use curl to follow redirects and print the final URL
+final_url=$(curl -Ls -o /dev/null -w %{url_effective} "$reddit_url")
+
+# Activate the virtual environment
+if [ -f "$VENV_PATH" ]; then
+  source "$VENV_PATH"
+else
+  echo "Error: Unable to find virtual environment at $VENV_PATH"
+  exit 1
+fi
+
+# Run the Python script and capture its output
+if [ -f "$PYTHON_SCRIPT" ]; then
+  output=$(python3 "$PYTHON_SCRIPT" "$final_url" "$output_dir")
+else
+  echo "Error: redditpost.py script not found at $PYTHON_SCRIPT"
+  exit 1
+fi
+
+echo "$output"
+
+# Extract the file path from the output
+file=$(echo "$output" | sed -n 's/^Markdown saved as: //p')
+
+# Ensure the file path was correctly captured
+if [ -z "$file" ]; then
+  echo "Error: Unable to determine the saved markdown file."
+  exit 1
+fi
+
+# Ensure the file exists before proceeding
+if [ ! -f "$file" ]; then
+  echo "Error: Markdown file not found: $file"
+  exit 1
+fi
+
+echo "Processing Fabric... Please wait..."
+
+# Capture the output of Fabric directly from the file content
+fabric_output=$(fabric --pattern reddit_summary < "$file")
+
+# Prepend the Fabric output to the original file content
+original_content=$(cat "$file")
+echo -e "# Fabric Summary\n\n$fabric_output\n\n$original_content" > "$file"
+
+echo "Updated file with Fabric summary at the beginning: $file"

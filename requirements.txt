@@ -1,0 +1,2 @@
+python-dotenv==1.0.1
+reddit2text==0.0.9

@@ -9,15 +9,16 @@ VENV_PATH="$SCRIPT_DIR/path/to/venv/bin/activate"
 # Path to the redditpost.py script
 PYTHON_SCRIPT="$SCRIPT_DIR/redditpost.py"
 
-# Check if two arguments are provided
-if [ "$#" -ne 2 ]; then
-  echo "Usage: $0 <reddit_url> <output_directory>"
+# Check if at least two arguments are provided
+if [ "$#" -lt 2 ]; then
+  echo "Usage: $0 <reddit_url> <output_directory> [pattern_name]"
   exit 1
 fi
 
 # Extract the arguments
 reddit_url=$1
 output_dir=$2
+pattern_name=${3:-"summarize"}  # Default pattern name is "summarize" if not provided
 
 # Use curl to follow redirects and print the final URL
 final_url=$(curl -Ls -o /dev/null -w %{url_effective} "$reddit_url")
@@ -55,13 +56,18 @@ if [ ! -f "$file" ]; then
   exit 1
 fi
 
-echo "Processing Fabric... Please wait..."
+# Apply Fabric only if pattern_name is not "0"
+if [ "$pattern_name" != "0" ]; then
+  echo "Processing Fabric with pattern '$pattern_name'... Please wait..."
 
-# Capture the output of Fabric directly from the file content
-fabric_output=$(fabric --pattern reddit_summary < "$file")
+  # Capture the output of Fabric directly from the file content
+  fabric_output=$(fabric --pattern "$pattern_name" < "$file")
 
-# Prepend the Fabric output to the original file content
-original_content=$(cat "$file")
-echo -e "# Fabric Summary\n\n$fabric_output\n\n$original_content" > "$file"
+  # Prepend the Fabric output to the original file content
+  original_content=$(cat "$file")
+  echo -e "# Fabric Summary\n\n$fabric_output\n\n$original_content" > "$file"
 
-echo "Updated file with Fabric summary at the beginning: $file"
+  echo "Updated file with Fabric summary at the beginning: $file"
+else
+  echo "No Fabric action applied as pattern name is '0'."
+fi

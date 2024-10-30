@@ -1,6 +1,7 @@
 import re
 import os
 import argparse
+from slugify import slugify
 
 def ensure_directory_exists(folder):
     if not os.path.exists(folder):
@@ -8,7 +9,7 @@ def ensure_directory_exists(folder):
 
 def generate_unique_filename(folder, title):
     # Generate a base filename from the title
-    base_filename = title.replace(" ", "-").replace(",", "").lower() + ".md"
+    base_filename = slugify(title) + ".md"
     filepath = os.path.join(folder, base_filename)
 
     # Check if the file already exists, and append a number if necessary
@@ -17,7 +18,7 @@ def generate_unique_filename(folder, title):
         counter = 1
         while os.path.exists(filepath):
             # Create new filename with number appended
-            new_filename = f"{title.replace(' ', '-').replace(',', '').lower()}-{counter}.md"
+            new_filename = f"{slugify(title)}-{counter}.md"
             filepath = os.path.join(folder, new_filename)
             counter += 1
 
